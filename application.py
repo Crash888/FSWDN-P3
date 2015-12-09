@@ -16,7 +16,7 @@ import xml.etree.ElementTree as ET
 from io import BytesIO
 from werkzeug import secure_filename
 import os
-
+from functools import wraps
 
 app = Flask(__name__)
 
@@ -43,6 +43,15 @@ session = DBSession()
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1] in app.config['ALLOWED_EXTENSIONS']
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'username' not in login_session:
+            return redirect(url_for('showLogin'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 # Create anti-forgery state token
@@ -386,11 +395,8 @@ def showCategories():
 
 # Enter a new category
 @app.route('/category/new/', methods=['GET', 'POST'])
+@login_required
 def newCategory():
-
-    # Only access this if logged in
-    if 'username' not in login_session:
-        return redirect('/login')
 
     if request.method == 'POST':
 
@@ -417,14 +423,14 @@ def newCategory():
 
 # Edit a category
 @app.route('/category/<int:category_id>/edit/', methods=['GET', 'POST'])
+@login_required
 def editCategory(category_id):
 
-    # Only access this if logged in
-    if 'username' not in login_session:
-        return redirect('/login')
-
     editedCategory = session.query(Category).filter_by(id=category_id).one()
-
+    
+    print ("editedCategory.user_id: " + str(editedCategory.user_id))
+    print ("login_session.user_id: " + str(login_session['user_id']))
+    
     # Can only edit categories created by you
     if editedCategory.user_id != login_session['user_id']:
         return "<script>function myFunction() " \
@@ -444,6 +450,9 @@ def editCategory(category_id):
 
         if not errors:
             editedCategory.name = categoryName
+            session.add(editedCategory)
+            session.commit()
+            
             flash('Category "%s" Successfully Edited' % editedCategory.name)
 
             return redirect(url_for('showCategoryItems',
@@ -456,11 +465,8 @@ def editCategory(category_id):
 
 # Delete a category
 @app.route('/category/<int:category_id>/delete/', methods=['GET', 'POST'])
+@login_required
 def deleteCategory(category_id):
-
-    # Only access this if logged in
-    if 'username' not in login_session:
-        return redirect('/login')
 
     categoryToDelete = session.query(Category).filter_by(id=category_id).one()
     categoryItemsToDelete = session.query(CategoryItem) \
@@ -498,7 +504,9 @@ def showCategoryItems(category_id):
     creator = getUserInfo(category.user_id)
     categoryItems = session.query(CategoryItem).filter_by(
         category_id=category_id).all()
-
+    
+    print ("showcatitems: " + str(creator.id) + " " + str(login_session['user_id']))
+    
     if 'username' not in login_session or \
        creator.id != login_session['user_id']:
         return render_template('publiccategoryitems.html',
@@ -512,11 +520,8 @@ def showCategoryItems(category_id):
 
 # Create a new category item
 @app.route('/catalog/<int:category_id>/menu/new/', methods=['GET', 'POST'])
+@login_required
 def newCategoryItem(category_id):
-
-    # Only access this if logged in
-    if 'username' not in login_session:
-        return redirect('/login')
 
     errors = ""
     filename = ""
@@ -570,11 +575,8 @@ def newCategoryItem(category_id):
 # Edit a category item
 @app.route('/category/<int:category_id>/items/<int:categoryItem_id>/edit',
            methods=['GET', 'POST'])
+@login_required
 def editCategoryItem(category_id, categoryItem_id):
-
-    # Only access this if logged in
-    if 'username' not in login_session:
-        return redirect('/login')
 
     errors = ""
     filename = ""
@@ -642,11 +644,8 @@ def editCategoryItem(category_id, categoryItem_id):
 # Delete a catalog item
 @app.route('/category/<int:category_id>/items/<int:categoryItem_id>/delete',
            methods=['GET', 'POST'])
+@login_required
 def deleteCategoryItem(category_id, categoryItem_id):
-
-    # Only access this if logged in
-    if 'username' not in login_session:
-        return redirect('/login')
 
     category = session.query(Category).filter_by(id=category_id).one()
     itemToDelete = session.query(CategoryItem).filter_by(id=categoryItem_id) \
