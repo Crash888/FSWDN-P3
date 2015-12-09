@@ -427,10 +427,7 @@ def newCategory():
 def editCategory(category_id):
 
     editedCategory = session.query(Category).filter_by(id=category_id).one()
-    
-    print ("editedCategory.user_id: " + str(editedCategory.user_id))
-    print ("login_session.user_id: " + str(login_session['user_id']))
-    
+
     # Can only edit categories created by you
     if editedCategory.user_id != login_session['user_id']:
         return "<script>function myFunction() " \
@@ -452,7 +449,7 @@ def editCategory(category_id):
             editedCategory.name = categoryName
             session.add(editedCategory)
             session.commit()
-            
+
             flash('Category "%s" Successfully Edited' % editedCategory.name)
 
             return redirect(url_for('showCategoryItems',
@@ -504,9 +501,7 @@ def showCategoryItems(category_id):
     creator = getUserInfo(category.user_id)
     categoryItems = session.query(CategoryItem).filter_by(
         category_id=category_id).all()
-    
-    print ("showcatitems: " + str(creator.id) + " " + str(login_session['user_id']))
-    
+
     if 'username' not in login_session or \
        creator.id != login_session['user_id']:
         return render_template('publiccategoryitems.html',
