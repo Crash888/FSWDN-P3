@@ -427,7 +427,10 @@ def newCategory():
 def editCategory(category_id):
 
     editedCategory = session.query(Category).filter_by(id=category_id).one()
-
+    
+    print ("editedCategory.user_id: " + str(editedCategory.user_id))
+    print ("login_session.user_id: " + str(login_session['user_id']))
+    
     # Can only edit categories created by you
     if editedCategory.user_id != login_session['user_id']:
         return "<script>function myFunction() " \
@@ -449,7 +452,7 @@ def editCategory(category_id):
             editedCategory.name = categoryName
             session.add(editedCategory)
             session.commit()
-
+            
             flash('Category "%s" Successfully Edited' % editedCategory.name)
 
             return redirect(url_for('showCategoryItems',
@@ -501,7 +504,9 @@ def showCategoryItems(category_id):
     creator = getUserInfo(category.user_id)
     categoryItems = session.query(CategoryItem).filter_by(
         category_id=category_id).all()
-
+    
+    print ("showcatitems: " + str(creator.id) + " " + str(login_session['user_id']))
+    
     if 'username' not in login_session or \
        creator.id != login_session['user_id']:
         return render_template('publiccategoryitems.html',
@@ -579,10 +584,10 @@ def editCategoryItem(category_id, categoryItem_id):
                                             .one()
     category = session.query(Category).filter_by(id=category_id).one()
 
-    # Can only edit items in categories that you created
-    if login_session['user_id'] != category.user_id:
+    # Can only edit items that you created
+    if login_session['user_id'] != editedItem.user_id:
         return "<script>function myFunction() " \
-               "{alert('You are not authorized to edit items to this " \
+               "{alert('You are not authorized to edit items in this " \
                "category. Please create your own category in order to " \
                "edit items.');}</script><body onload='myFunction()''>"
 
@@ -646,11 +651,11 @@ def deleteCategoryItem(category_id, categoryItem_id):
     itemToDelete = session.query(CategoryItem).filter_by(id=categoryItem_id) \
                                               .one()
 
-    # Can only delete an item in a category you created
-    if login_session['user_id'] != category.user_id:
+    # Can only delete an item that you created
+    if login_session['user_id'] != itemToDelete.user_id:
         return "<script>function myFunction() " \
-               "{alert('You are not authorized to delete items for this " \
-               "category. Please create your own category in order to " \
+               "{alert('You are not authorized to delete this item. " \
+               "Please create your own category in order to " \
                "delete items.');}</script><body onload='myFunction()''>"
 
     if request.method == 'POST':
